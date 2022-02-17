@@ -90,6 +90,7 @@ def train():
         ppo_agent = PPO(
             state_dim,
             action_dim,
+            config["loss_name"],
             config["lr_actor"],
             config["lr_critic"],
             config["gamma"],

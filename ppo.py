@@ -38,10 +38,11 @@ class RolloutBuffer:
 
 
 class ActorCritic(nn.Module):
-    def __init__(self, state_dim, action_dim, action_std_init):
+    def __init__(self, state_dim, action_dim, loss_name, action_std_init):
         super(ActorCritic, self).__init__()
 
         self.action_dim = action_dim
+        self.loss_name = loss_name
         self.action_var = torch.full(
             (action_dim,), action_std_init * action_std_init
         ).to(device)
@@ -104,6 +105,7 @@ class PPO:
         self,
         state_dim,
         action_dim,
+        loss_name,
         lr_actor,
         lr_critic,
         gamma,
@@ -119,8 +121,10 @@ class PPO:
         self.K_epochs = K_epochs
 
         self.buffer = RolloutBuffer()
-
-        self.policy = ActorCritic(state_dim, action_dim, action_std_init).to(device)
+        self.loss_name = loss_name
+        self.policy = ActorCritic(state_dim, action_dim, loss_name, action_std_init).to(
+            device
+        )
         self.optimizer = torch.optim.Adam(
             [
                 {"params": self.policy.actor.parameters(), "lr": lr_actor},
@@ -128,7 +132,9 @@ class PPO:
             ]
         )
 
-        self.policy_old = ActorCritic(state_dim, action_dim, action_std_init).to(device)
+        self.policy_old = ActorCritic(
+            state_dim, action_dim, loss_name, action_std_init
+        ).to(device)
         self.policy_old.load_state_dict(self.policy.state_dict())
 
         self.MseLoss = nn.MSELoss()
@@ -164,6 +170,28 @@ class PPO:
         self.buffer.logprobs.append(action_logprob)
 
         return action.detach().cpu().numpy().flatten()
+
+    def get_clipped_loss(
+        self, rewards, state_values, logprobs, old_logprobs, dist_entropy
+    ):
+        ratios = torch.exp(logprobs - old_logprobs.detach())
+
+        # Finding Surrogate Loss
+        advantages = rewards - state_values.detach()
+        surr1 = ratios * advantages
+        surr2 = torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
+
+        return (
+            -torch.min(surr1, surr2)
+            + 0.5 * self.MseLoss(state_values, rewards)
+            - 0.01 * dist_entropy
+        )
+
+    def get_loss(self, rewards, state_values, logprobs, old_logprobs, dist_entropy):
+        if self.loss_name == "clipped_loss":
+            return self.get_clipped_loss(
+                rewards, state_values, logprobs, old_logprobs, dist_entropy
+            )
 
     def update(self):
         # Monte Carlo estimate of returns
@@ -204,22 +232,10 @@ class PPO:
             state_values = torch.squeeze(state_values)
 
             # Finding the ratio (pi_theta / pi_theta__old)
-            ratios = torch.exp(logprobs - old_logprobs.detach())
 
-            # Finding Surrogate Loss
-            advantages = rewards - state_values.detach()
-            surr1 = ratios * advantages
-            surr2 = (
-                torch.clamp(ratios, 1 - self.eps_clip, 1 + self.eps_clip) * advantages
+            loss = self.get_loss(
+                rewards, state_values, logprobs, old_logprobs, dist_entropy
             )
-
-            # final loss of clipped objective PPO
-            loss = (
-                -torch.min(surr1, surr2)
-                + 0.5 * self.MseLoss(state_values, rewards)
-                - 0.01 * dist_entropy
-            )
-
             # take gradient step
             self.optimizer.zero_grad()
             loss.mean().backward()
