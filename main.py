@@ -96,6 +96,8 @@ def train():
             config["gamma"],
             config["K_epochs"],
             config["eps_clip"],
+            config["beta_kl"],
+            config["d_targ"],
             config["action_std"],
         )
 

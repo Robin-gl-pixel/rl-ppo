@@ -1,3 +1,5 @@
+import numpy as np
+
 import torch
 import torch.nn as nn
 from torch.distributions import MultivariateNormal
@@ -111,6 +113,8 @@ class PPO:
         gamma,
         K_epochs,
         eps_clip,
+        beta_kl,
+        d_targ,
         action_std_init=0.6,
     ):
 
@@ -119,6 +123,8 @@ class PPO:
         self.gamma = gamma
         self.eps_clip = eps_clip
         self.K_epochs = K_epochs
+        self.beta_kl = beta_kl
+        self.d_targ = d_targ
 
         self.buffer = RolloutBuffer()
         self.loss_name = loss_name
@@ -187,11 +193,55 @@ class PPO:
             - 0.01 * dist_entropy
         )
 
+    def get_adaptative_kl_loss(self, rewards, state_values, logprobs, old_logprobs):
+        ratios = torch.exp(logprobs - old_logprobs.detach())
+        advantages = rewards - state_values.detach()
+
+        # TODO: Fix duplicated mu
+
+        difference = torch.exp(logprobs) - torch.exp(old_logprobs.detach())
+
+        difference_std = (
+            difference
+            / torch.tensor(self.action_std * np.ones(state_values.size())).float()
+        )
+
+        kl = torch.dot(difference_std, difference) / 2
+        if kl < self.d_targ / 1.5:
+            self.beta_kl = self.beta_kl / 2
+        elif kl > self.d_targ * 1.5:
+            self.beta_kl = self.beta_kl * 2
+
+        return -ratios * advantages + self.beta_kl * kl
+
+    def get_a2c_loss(self, rewards, state_values, logprobs, old_logprobs, dist_entropy):
+
+        advantages = rewards - state_values.detach()
+        ratios = torch.exp(logprobs - old_logprobs.detach())
+        # A2C Losses
+        # TODO: add entropy coef == 0.01
+        entr_loss = 0.01 * dist_entropy
+        # TODO: pi_coef = 0.5
+        pi_loss = -ratios * advantages
+        # TODO: val_coef== 0.5
+        val_loss = 0.5 * self.MseLoss(state_values, rewards)
+        return pi_loss + val_loss - entr_loss
+
     def get_loss(self, rewards, state_values, logprobs, old_logprobs, dist_entropy):
         if self.loss_name == "clipped_loss":
             return self.get_clipped_loss(
                 rewards, state_values, logprobs, old_logprobs, dist_entropy
             )
+        elif self.loss_name == "A2C_loss":
+
+            return self.get_a2c_loss(
+                rewards, state_values, logprobs, old_logprobs, dist_entropy
+            )
+        elif self.loss_name == "adaptative_KL_loss":
+            return self.get_adaptative_kl_loss(
+                rewards, state_values, logprobs, old_logprobs
+            )
+        raise NotImplementedError
 
     def update(self):
         # Monte Carlo estimate of returns

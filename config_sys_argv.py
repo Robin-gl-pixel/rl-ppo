@@ -99,8 +99,21 @@ def get_arguments():
         "--all_loss",
         type=list,
         help="all loss to test with",
-        default=["clipped_loss", "adaptative_KL_loss", "A2C_loss"],
+        default=[
+            "adaptative_KL_loss",
+            "A2C_loss",
+            "clipped_loss",
+        ],
     )
+
+    parser.add_argument(
+        "--beta_kl",
+        type=int,
+        help="initialisation ppo KL loss",
+        default=3,
+    )
+    parser.add_argument("--d_targ", type=float, help="target ppo KL loss", default=1)
+
     return parser
 
 
@@ -130,6 +143,9 @@ def reset_config(opt, print_=False):
     config["lr_critic"] = opt.lr_critic
 
     config["random_seed"] = opt.random_seed
+
+    config["beta_kl"] = opt.beta_kl
+    config["d_targ"] = opt.d_targ
 
     # TODO: adapt main test code to plot and compare the loss
     config["color"] = {
