@@ -112,7 +112,18 @@ def get_arguments():
         help="initialisation ppo KL loss",
         default=3,
     )
-    parser.add_argument("--d_targ", type=float, help="target ppo KL loss", default=1)
+    parser.add_argument("--d_targ", type=int, help="target ppo KL loss", default=1)
+
+    parser.add_argument(
+        "--total_test_episodes", type=int, help="nb test episode to make gif", default=1
+    )
+
+    parser.add_argument(
+        "--run_num_pretrained",
+        type=float,
+        help="set this to load a particular checkpoint num to make gif",
+        default=0,
+    )
 
     return parser
 
@@ -147,6 +158,8 @@ def reset_config(opt, print_=False):
     config["beta_kl"] = opt.beta_kl
     config["d_targ"] = opt.d_targ
 
+    config["run_num_pretrained"] = opt.d_targ
+
     # TODO: adapt main test code to plot and compare the loss
     config["color"] = {
         "A2C_loss": sns.color_palette("Set2")[0],
@@ -166,7 +179,7 @@ def reset_config(opt, print_=False):
     return config
 
 
-def make_exp_dir(opt, log_dir="experiences", log_dir2="PPO_logs"):
+def make_exp_dir(environment_name, log_dir="experiences", log_dir2="PPO_logs"):
     log_dir = "experiences"
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
@@ -176,7 +189,7 @@ def make_exp_dir(opt, log_dir="experiences", log_dir2="PPO_logs"):
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    log_dir = os.path.join(log_dir, opt.env)
+    log_dir = os.path.join(log_dir, environment_name)
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
     return log_dir
