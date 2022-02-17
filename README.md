@@ -8,6 +8,8 @@ then activate with
 
 conda activate project-env
 
+pip install -r requirements.txt
+
 Then run main with
 
 python main.py
