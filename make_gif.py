@@ -175,6 +175,3 @@ if __name__ == "__main__":
 
         # save .gif in PPO_gifs folder using .jpg images
         save_gif(opt.env, gif_images_dir, gif_dir)
-
-        # list byte size (in MB) of gifs in one "PPO_gif/env_name/" folder
-        list_gif_size(opt.env)

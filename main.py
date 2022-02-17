@@ -76,8 +76,11 @@ def train():
         if not os.path.exists(loss_pretrained_dir):
             os.makedirs(loss_pretrained_dir)
 
-        checkpoint_path = loss_pretrained_dir + "PPO_{}_{}_{}.pth".format(
-            config["env_name"], config["random_seed"], run_num_pretrained
+        checkpoint_path = os.path.join(
+            loss_pretrained_dir,
+            "PPO_{}_{}_{}.pth".format(
+                config["env_name"], config["random_seed"], run_num_pretrained
+            ),
         )
         print("save checkpoint path : " + checkpoint_path)
 
