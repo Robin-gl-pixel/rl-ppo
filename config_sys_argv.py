@@ -100,9 +100,9 @@ def get_arguments():
         type=list,
         help="all loss to test with",
         default=[
+            "clipped_loss",
             "adaptative_KL_loss",
             "A2C_loss",
-            "clipped_loss",
         ],
     )
 

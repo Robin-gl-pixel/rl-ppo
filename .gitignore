@@ -16,7 +16,6 @@ __pycache__
 *.db
 *.TMP
 *.html
-*.csv
 *.csv#
 #*.pdf
 
