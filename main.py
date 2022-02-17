@@ -10,6 +10,7 @@ import gym
 
 from ppo import PPO
 from config_sys_argv import get_arguments, reset_config, make_exp_dir
+from main_utils import print_average_reward, save_model_weights, log_in_logging_file
 
 ################################### Training ###################################
 
@@ -25,7 +26,7 @@ def train():
 
     print("training environment name : " + opt.env)
 
-    log_dir = make_exp_dir(opt, "experiences", "PPO_logs")
+    log_dir = make_exp_dir(opt.env, "experiences", "PPO_logs")
 
     for loss in opt.all_loss:
         print("-----------------" + loss + "-----------------")
@@ -69,7 +70,7 @@ def train():
         run_num_pretrained = (
             0  #### change this to prevent overwriting weights in same env_name folder
         )
-        pretrained_dir = make_exp_dir(opt, "experiences", "PPO_preTrained")
+        pretrained_dir = make_exp_dir(opt.env, "experiences", "PPO_preTrained")
         #### log files for multiple runs are NOT overwritten
         loss_pretrained_dir = os.path.join(pretrained_dir, loss)
         if not os.path.exists(loss_pretrained_dir):
@@ -146,7 +147,7 @@ def train():
                 if time_step % config["update_timestep"] == 0:
                     ppo_agent.update()
 
-                # if continuous action space; then decay action std of ouput action distribution
+                # Decay action std of ouput action distribution
                 if time_step % config["action_std_decay_freq"] == 0:
                     ppo_agent.decay_action_std(
                         config["action_std_decay_rate"], config["min_action_std"]
@@ -154,49 +155,23 @@ def train():
 
                 # log in logging file
                 if time_step % config["log_freq"] == 0:
-
                     # log average reward till last episode
                     log_avg_reward = log_running_reward / log_running_episodes
-                    log_avg_reward = round(log_avg_reward, 4)
-
-                    log_f.write(
-                        "{},{},{}\n".format(i_episode, time_step, log_avg_reward)
-                    )
-                    log_f.flush()
-
+                    log_in_logging_file(log_avg_reward, log_f, i_episode, time_step)
                     log_running_reward = 0
                     log_running_episodes = 0
 
-                # printing average reward
                 if time_step % config["print_freq"] == 0:
-
-                    # print average reward till last episode
                     print_avg_reward = print_running_reward / print_running_episodes
-                    print_avg_reward = round(print_avg_reward, 2)
-
-                    print(
-                        "Episode : {} \t\t Timestep : {} \t\t Average Reward : {}".format(
-                            i_episode, time_step, print_avg_reward
-                        )
-                    )
-
+                    print_average_reward(time_step, i_episode, print_avg_reward)
                     print_running_reward = 0
                     print_running_episodes = 0
 
                 # save model weights
+
                 if time_step % config["save_model_freq"] == 0:
-                    print(
-                        "--------------------------------------------------------------------------------------------"
-                    )
-                    print("saving model at : " + checkpoint_path)
-                    ppo_agent.save(checkpoint_path)
-                    print("model saved")
-                    print(
-                        "Elapsed Time  : ",
-                        datetime.now().replace(microsecond=0) - start_time,
-                    )
-                    print(
-                        "--------------------------------------------------------------------------------------------"
+                    save_model_weights(
+                        time_step, ppo_agent, checkpoint_path, start_time
                     )
 
                 # break; if the episode is over
