@@ -218,14 +218,12 @@ class PPO:
 
         advantages = rewards - state_values.detach()
         ratios = torch.exp(logprobs - old_logprobs.detach())
-        # A2C Losses
-        # TODO: add entropy coef == 0.01
-        entr_loss = 0.01 * dist_entropy
-        # TODO: pi_coef = 0.5
-        pi_loss = -ratios * advantages
-        # TODO: val_coef== 0.5
-        val_loss = 0.5 * self.MseLoss(state_values, rewards)
-        return pi_loss + val_loss - entr_loss
+
+        return (
+            -ratios * advantages
+            + 0.5 * self.MseLoss(state_values, rewards)
+            - 0.01 * dist_entropy
+        )
 
     def get_loss(self, rewards, state_values, logprobs, old_logprobs, dist_entropy):
         if self.loss_name == "clipped_loss":

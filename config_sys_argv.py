@@ -161,19 +161,6 @@ def reset_config(opt, print_=False):
     config["run_num_pretrained"] = opt.run_num_pretrained
     config["total_test_episodes"] = opt.total_test_episodes
 
-    # TODO: adapt main test code to plot and compare the loss
-    config["color"] = {
-        "A2C_loss": sns.color_palette("Set2")[0],
-        "adaptative_KL_loss": sns.color_palette("Set2")[1],
-        "clipped_loss": sns.color_palette("Set2")[2],
-    }
-    config["solved_reward"] = {
-        "LunarLander-v2": 230,
-        "MountainCarContinuous-v0": 300,
-        "CartPole-v1": 300,
-        "MountainCar-v0": 300,
-    }
-
     if print_:
         print("Training config : \n")
         pprint(config)
