@@ -10,44 +10,49 @@ import torch
 import seaborn as sns
 import gym
 
+from config_sys_argv import get_arguments, reset_config, make_exp_dir
 
-def plot_result(all_df, label_list, saving_path="experiences/image/MountainCarContinuous-v0/rewards.png", var=["timestep", "reward"]):
+
+def plot_result(
+    all_df,
+    label_list,
+    saving_path,
+    var=["timestep", "reward"],
+):
     plt.figure(figsize=(10, 6))
-    for i in range(len(label_list)):
-        loss_name = label_list[i]
+    for loss_name in label_list:
         sns.lineplot(
             x=var[0],
             y=var[1],
             ci="sd",
-            data=all_df[i],
+            data=all_df[loss_name],
             label=loss_name,
         )
 
     plt.savefig(saving_path)
 
 
-def plot_sensitivity(all_df, label_list, var=["timestep", "reward"], saving_path="experiences/image/MountainCarContinuous-v0/sensitivity.png"):
-    plt.figure(figsize=(8, 4))
-    for i in range(len(label_list)):
-        r = all_df[i]
-        col = list(sns.color_palette("Set1") + sns.color_palette("Set3"))[i]
-        sns.lineplot(
-            x=var[0], y=var[1], ci="sd", data=r, color=col, label=label_list[i]
-        )
-    plt.title("Sensitivity of the reward for each loss")
-    plt.savefig(saving_path)
 if __name__ == "__main__":
 
+    parser = get_arguments()
 
-    esperience_name = "MountainCarContinuous-v0"
-    a2c_loss_path ="experiences/PPO_logs/MountainCarContinuous-v0/A2C_loss/PPO_MountainCarContinuous-v0_log_0.csv"
-    kl_loss_path = "experiences/PPO_logs/MountainCarContinuous-v0/adaptative_KL_loss/PPO_MountainCarContinuous-v0_log_0.csv"
-    clipped_loss_path = "experiences/PPO_logs/MountainCarContinuous-v0/clipped_loss/PPO_MountainCarContinuous-v0_log_1.csv"
-    
-    a2c_loss_df = pd.read_csv(a2c_loss_path)
-    kl_loss_df = pd.read_csv(kl_loss_path)
-    clipped_loss_df = pd.read_csv(clipped_loss_path)
+    opt = parser.parse_args()
 
-    label_list = ["a2c_loss", "kl_loss", "clipped_loss"]
-    plot_sensitivity([a2c_loss_df, kl_loss_df, clipped_loss_df], label_list)
-    plot_result([a2c_loss_df, kl_loss_df, clipped_loss_df], label_list)
+    environment_name = opt.env
+
+    all_loss_df = {}
+    for loss_name in opt.all_loss:
+        checkpoint_path = os.path.join(
+            "experiences",
+            "PPO_logs",
+            environment_name,
+            loss_name,
+            "PPO_{}_log_{}.csv".format(
+                environment_name, opt.random_seed, opt.run_num_pretrained
+            ),
+        )
+        all_loss_df[loss_name] = pd.read_csv(checkpoint_path)
+
+    saving_path = os.path.join("experiences", "image", environment_name, "rewards.png")
+
+    plot_result(all_loss_df, opt.all_loss, saving_path)
