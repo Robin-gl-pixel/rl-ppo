@@ -42,6 +42,7 @@ def save_gif_images(environment_name, loss_name, opt, gif_images_dir, gif_dir):
         "experiences",
         "PPO_preTrained",
         environment_name,
+        loss_name,
         "PPO_{}_{}_{}.pth".format(
             environment_name, config["random_seed"], config["run_num_pretrained"]
         ),
@@ -171,7 +172,7 @@ if __name__ == "__main__":
         # TODO ad run_num_pretrained
         # save .jpg images in PPO_gif_images folder
 
-        save_gif_images(opt.env, loss, opt, gif_images_dir, gif_dir)
+        save_gif_images(opt.env, loss, opt, loss_gif_images_dir, loss_gif_dir)
 
         # save .gif in PPO_gifs folder using .jpg images
-        save_gif(opt.env, gif_images_dir, gif_dir)
+        save_gif(opt.env, loss_gif_images_dir, loss_gif_dir)

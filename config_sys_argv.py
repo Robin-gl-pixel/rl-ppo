@@ -158,7 +158,8 @@ def reset_config(opt, print_=False):
     config["beta_kl"] = opt.beta_kl
     config["d_targ"] = opt.d_targ
 
-    config["run_num_pretrained"] = opt.d_targ
+    config["run_num_pretrained"] = opt.run_num_pretrained
+    config["total_test_episodes"] = opt.total_test_episodes
 
     # TODO: adapt main test code to plot and compare the loss
     config["color"] = {
